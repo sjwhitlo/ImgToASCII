@@ -1,5 +1,6 @@
 # ImgToASCII
 
+Takes an image and converts to ASCII characters.
 Runnable from the command line.
 
 ## Supported Files
