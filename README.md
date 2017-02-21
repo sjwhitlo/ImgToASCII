@@ -11,5 +11,5 @@ Runs from the command line.
 ## Parameters
 - path to file
 - samples
-  - Where samples are every ith pixel
+  - Where samples are every _ith_ pixel
 - optional: invert symbols (y/n)
