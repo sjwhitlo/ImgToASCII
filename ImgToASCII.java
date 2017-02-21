@@ -3,7 +3,7 @@ import java.awt.*;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 
-public final class JpegToASCII {
+public final class ImgToASCII {
     
     public static final char[] SYM_LIST = { ' ', '.', ':', '-', '=', '+', '*', '#', '%', '@' };
     public static final char[] INV_LIST = { '@', '%', '#', '*', '+', '=', '-', ':', '.', ' ' };
