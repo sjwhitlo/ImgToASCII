@@ -10,6 +10,6 @@ Runs from the command line.
 
 ## Parameters
 - path to file
-- samples
+- samples (int)
   - Where samples are every _ith_ pixel
 - optional: invert symbols (y/n)
