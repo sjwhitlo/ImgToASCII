@@ -1,3 +1,4 @@
+import java.util.Scanner;
 import java.io.*;
 import java.awt.*;
 import javax.imageio.ImageIO;
@@ -10,27 +11,103 @@ public final class ImgToASCII {
     public static final int RGB_MAX = 255;
     public static final double LUMA_MAX = 1.0;
     public static final double W_H_RATIO = 2;
+    public static final char INVERTED = 'y'; // 'y' will evaluate to true
+    public static final String IMG_EXT = ".jpg";
+    public static final int CONSOLE_WIDTH = 80;
+    
+    private static String fp = "default.jpg";
+    private static int y_sam = 0;
+    private static int x_sam = 2;
+    private static boolean inverted = false;
+    private static String imgOut = "ImageOut";
     
     public static void main(String[] args) {
+        // -------- Input --------
+        if ( args.length == 0 ) {
+            // Get input via keyboard input
+            getInput();
+        } else if ( args.length == 3 ) {
+            // Input via command line
+            fp = args[0];
+            x_sam = Integer.parseInt( args[1] );
+            imgOut = args[2];
+        } else if ( args.length == 4 ) {
+            // input via command line ( with inverted characters )
+            fp = args[0];
+            x_sam = Integer.parseInt( args[1] );
+            imgOut = args[2];
+            inverted = ( args[3].charAt(0) == INVERTED );
+        } else {
+            System.out.println( "usage: java JpegToASCII path_to_file samples output_file(w/o_.jpg) [opt: inverted (y/n)]");
+        }
+        
+        // Append the extension
+        imgOut += IMG_EXT;
+        
+        // -------- Logic --------
+        
+        // convert the image
+        String imageText = convertASCII();
+        
+        // Write the image
+        // writeImageFromText( imageText );
+        
+        // Re-render for terminal output
+        System.out.println( terminalASCII() );
+    }
+    
+    /** Writes an image from a String. */
+    private static void writeImageFromText( String text ) {
+        /*
+         Because font metrics is based on a graphics context, we need to create
+         a small, temporary image so we can ascertain the width and height
+         of the final image
+         */
+        /*
+         Code based on post from Stack Overflow:
+         http://stackoverflow.com/questions/18800717/convert-text-content-to-image
+         */
+        BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = img.createGraphics();
+        Font font = new Font("Consolas", Font.PLAIN, 12);
+        g2d.setFont(font);
+        FontMetrics fm = g2d.getFontMetrics();
+        int width = fm.stringWidth(text);
+        int height = fm.getHeight();
+        g2d.dispose();
+        
+        img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        g2d = img.createGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_DITHERING, RenderingHints.VALUE_DITHER_ENABLE);
+        g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+        g2d.setFont(font);
+        fm = g2d.getFontMetrics();
+        g2d.setColor(Color.BLACK);
+        g2d.drawString(text, 0, fm.getAscent());
+        g2d.dispose();
         try {
-            String fp = "Wolf.jpg";
-            int y_sam;
-            int x_sam = 9;
-            char inverted = 'n';
-            
-            if ( args.length == 2 ) {
-                fp = args[0];
-                x_sam = Integer.parseInt( args[1] );
-            } else if ( args.length == 3 ) {
-                fp = args[0];
-                x_sam = Integer.parseInt( args[1] );
-                inverted = args[2].charAt(0);
-            } else if ( args.length != 1 && args.length != 3 ) {
-                System.out.println( "usage: java JpegToASCII [path_to_file] [width sample (int)] [opt: inverted (y/n)]");
-            }
-            
-            y_sam = (int) ( (double) x_sam * W_H_RATIO );
-            
+            ImageIO.write(img, "png", new File("Text.png"));
+//            ImageIO.write(img, "jpg", new File("" + imgOut));
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+
+    }
+    
+    private static String convertASCII() {
+        // Calculate the y sampling rate
+        y_sam = (int) ( (double) x_sam * W_H_RATIO );
+        
+        // Build the string to convert to img
+        String toReturn = "";
+        
+        try {
             // Input the image file
             File file = new File( fp );
             BufferedImage image = ImageIO.read(file);
@@ -46,34 +123,108 @@ public final class ImgToASCII {
                     int green = (clr & 0x0000ff00) >> 8;
                     int blue  =  clr & 0x000000ff;
                     
-                    char sym = symbol( red, green, blue, (inverted == 'y') );
-                    //                System.out.printf("r: %3d, g: %3d, b: %3d, s: \'%3c\'\n", red, green, blue, sym);
+                    // get the symbol
+                    char sym = symbol( red, green, blue );
                     
-                    System.out.print(sym);
+                    // append the symbol
+                    toReturn += sym;
                 }
-                System.out.println();
+                // Add new line
+                toReturn += "\n";
             }
         } catch ( IOException e ) {
             e.printStackTrace();
         }
+        
+        // Return the String
+        return toReturn;
     }
     
-    private static char symbol( int r, int g, int b, boolean inv ) {
+    /** Returns a String for Terminal Output. */
+    private static String terminalASCII() {
+        // Build the string to convert to img
+        String toReturn = "";
+        
+        try {
+            // Input the image file
+            File file = new File( fp );
+            BufferedImage image = ImageIO.read(file);
+            
+            // Calculate x_sam
+            x_sam = image.getWidth() / CONSOLE_WIDTH;
+            
+            // Calculate the y sampling rate
+            y_sam = (int) ( (double) x_sam * W_H_RATIO );
+            
+            // iterate through image
+            // Iterate for every row
+            for ( int y = 0; y < image.getHeight(); y += y_sam ) {
+                // Iterate for every column
+                for ( int x = 0; x < image.getWidth(); x += x_sam ) {
+                    // Getting pixel color by position x and y
+                    int clr =  image.getRGB(x,y);
+                    int red   = (clr & 0x00ff0000) >> 16;
+                    int green = (clr & 0x0000ff00) >> 8;
+                    int blue  =  clr & 0x000000ff;
+                    
+                    // get the symbol
+                    char sym = symbol( red, green, blue );
+                    
+                    // append the symbol
+                    toReturn += sym;
+                }
+                // Add new line
+                toReturn += "\n";
+            }
+        } catch ( IOException e ) {
+            e.printStackTrace();
+        }
+        
+        // Return the String
+        return toReturn;
+    }
+    
+    /** Returns the symbol for the pixel. */
+    private static char symbol( int r, int g, int b ) {
         double rpart = ( (double)r / RGB_MAX ) * 0.3;
         double gpart = ( (double)g / RGB_MAX ) * 0.59;
         double bpart = ( (double)b / RGB_MAX ) * 0.11;
         
+        // Add the components to get the brightness
         double luma = rpart + gpart + bpart;
         
-//        System.out.printf("   r: %3f, g: %3f, b: %3f, l: %3f\n", rpart, gpart, bpart, luma);
+        // get the symbol
+        int i = 0;
+        if ( luma >= 0.10 )
+            i = (int)( ( luma * (double) SYM_LIST.length ) - 0.25 );
         
-        for ( int i = 0; i < SYM_LIST.length; i++ ) {
-            if ( luma < (i+1) * LUMA_MAX / SYM_LIST.length ) {
-                return (inv ? INV_LIST[i] : SYM_LIST[i] );
-            }
-        }
+        // System.out.printf( "luma: %4.1f i: %1d   ", luma, i );
         
-        // default return
-        return 'X';
+        // Return the symbol
+        return (inverted ? INV_LIST[i] : SYM_LIST[i] );
+    }
+    
+    /** Takes input from the keyboard. see below for how it works. */
+    public static void getInput() {
+        Scanner k = new Scanner( System.in );
+        String in = "";
+        
+        System.out.println( "--------------------------------------------------------------------------------" );
+        System.out.println( "                      \"Convert Image File to ASCII Image\"                       " );
+        System.out.println( "--------------------------------------------------------------------------------" );
+        
+        System.out.print( "Path/File.ext: " );
+        fp = k.nextLine();
+        
+        System.out.print( "Width (px): " );
+        x_sam = k.nextInt();
+        
+        System.out.print( "File out (w/o ext): " );
+        imgOut = k.nextLine();
+        
+        System.out.print( "Invert symbols (y/n): " );
+        String inv = k.nextLine();
+        inverted = ( inv.charAt(0) == INVERTED );
+        
     }
 }
