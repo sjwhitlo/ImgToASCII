@@ -13,5 +13,5 @@ Runs from the command line via arguments or keyboard input.
 - path to file
 - samples (int)
   - Where samples are every _ith_ pixel
-- output file namew (without the extension)
+- output file name (without the extension)
 - optional: invert symbols (y/n)
