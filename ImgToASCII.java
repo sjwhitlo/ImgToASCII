@@ -12,8 +12,9 @@ public final class ImgToASCII {
     public static final double LUMA_MAX = 1.0;
     public static final double W_H_RATIO = 2;
     public static final char INVERTED = 'y'; // 'y' will evaluate to true
-    public static final String IMG_EXT = ".jpg";
+    public static final String IMG_EXT = ".png";
     public static final int CONSOLE_WIDTH = 80;
+    public static final int CONSOLE_HEIGHT = 24;
     
     private static String fp = "default.jpg";
     private static int y_sam = 0;
@@ -21,6 +22,7 @@ public final class ImgToASCII {
     private static boolean inverted = false;
     private static String imgOut = "ImageOut";
     
+    /** Main method. Outsources all of the work to other methods. */
     public static void main(String[] args) {
         // -------- Input --------
         if ( args.length == 0 ) {
@@ -47,17 +49,19 @@ public final class ImgToASCII {
         // -------- Logic --------
         
         // convert the image
-        String imageText = convertASCII();
+        String[] imageText = convertASCII();
         
         // Write the image
-        // writeImageFromText( imageText );
+        writeImageFromText( imageText );
         
         // Re-render for terminal output
         System.out.println( terminalASCII() );
+        
+        // System.out.println( imageText );
     }
     
-    /** Writes an image from a String. */
-    private static void writeImageFromText( String text ) {
+    /** Writes an image from a String. The font is consolas. */
+    private static void writeImageFromText( String[] text ) {
         /*
          Because font metrics is based on a graphics context, we need to create
          a small, temporary image so we can ascertain the width and height
@@ -72,8 +76,8 @@ public final class ImgToASCII {
         Font font = new Font("Consolas", Font.PLAIN, 12);
         g2d.setFont(font);
         FontMetrics fm = g2d.getFontMetrics();
-        int width = fm.stringWidth(text);
-        int height = fm.getHeight();
+        int width = fm.stringWidth(text[0]);
+        int height = fm.getHeight() * text.length;
         g2d.dispose();
         
         img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
@@ -89,32 +93,52 @@ public final class ImgToASCII {
         g2d.setFont(font);
         fm = g2d.getFontMetrics();
         g2d.setColor(Color.BLACK);
-        g2d.drawString(text, 0, fm.getAscent());
+        
+        // Keep track of y
+        float y = fm.getAscent();
+        for ( int i = 0; i < text.length; i++ ) {
+            g2d.drawString(text[i], 0, y);
+            // update y
+            y += fm.getAscent() + fm.getDescent();// + fm.getLeading();
+        }
         g2d.dispose();
         try {
-            ImageIO.write(img, "png", new File("Text.png"));
-//            ImageIO.write(img, "jpg", new File("" + imgOut));
+            //            ImageIO.write(img, "png", new File("Text.png"));
+            ImageIO.write(img, "png", new File("" + imgOut));
         } catch (IOException ex) {
             ex.printStackTrace();
         }
-
+        
     }
     
-    private static String convertASCII() {
+    /**
+     Converts an image to ASCII characters based on the brightness of pixels.
+     The resulting characters are arbitrary of line shape for the original image.
+     */
+    private static String[] convertASCII() {
         // Calculate the y sampling rate
         y_sam = (int) ( (double) x_sam * W_H_RATIO );
         
         // Build the string to convert to img
-        String toReturn = "";
+        String toReturn[] = { "" };
         
         try {
             // Input the image file
             File file = new File( fp );
             BufferedImage image = ImageIO.read(file);
             
+            // We want the array we are returning to be just big enough to hold all of the lines
+            toReturn = new String[ image.getHeight() / y_sam ];
+            
             // iterate through image
             // Iterate for every row
-            for ( int y = 0; y < image.getHeight(); y += y_sam ) {
+            for ( int i = 0; i < toReturn.length; i++ ) {
+                // Get the y value
+                int y = i * y_sam;
+                
+                // Init to ""
+                toReturn[i] = "";
+                
                 // Iterate for every column
                 for ( int x = 0; x < image.getWidth(); x += x_sam ) {
                     // Getting pixel color by position x and y
@@ -127,10 +151,8 @@ public final class ImgToASCII {
                     char sym = symbol( red, green, blue );
                     
                     // append the symbol
-                    toReturn += sym;
+                    toReturn[ i ] += sym;
                 }
-                // Add new line
-                toReturn += "\n";
             }
         } catch ( IOException e ) {
             e.printStackTrace();
@@ -150,11 +172,18 @@ public final class ImgToASCII {
             File file = new File( fp );
             BufferedImage image = ImageIO.read(file);
             
-            // Calculate x_sam
-            x_sam = image.getWidth() / CONSOLE_WIDTH;
-            
-            // Calculate the y sampling rate
-            y_sam = (int) ( (double) x_sam * W_H_RATIO );
+            // Determine the constraining dimension for the image
+            if ( image.getWidth() > image.getHeight() ) {
+                // Calculate x_sam
+                x_sam = image.getWidth() / CONSOLE_WIDTH;
+                // Calculate the y sampling rate
+                y_sam = (int) ( (double) x_sam * W_H_RATIO );
+            } else {
+                // Calc y_sam
+                y_sam = image.getHeight() / CONSOLE_HEIGHT;
+                // Calc x_sam
+                x_sam = (int) ( (double) y_sam / W_H_RATIO );
+            }
             
             // iterate through image
             // Iterate for every row
@@ -216,9 +245,10 @@ public final class ImgToASCII {
         System.out.print( "Path/File.ext: " );
         fp = k.nextLine();
         
-        System.out.print( "Width (px): " );
+        System.out.print( "Sample 1 px every: " );
         x_sam = k.nextInt();
         
+        k.nextLine();
         System.out.print( "File out (w/o ext): " );
         imgOut = k.nextLine();
         
