@@ -9,7 +9,7 @@ Runs from the command line via arguments or keyboard input.
 - .jpg / .jpeg
 - .gif
 
-## Parameters
+## Command Line Arguments
 - path to file
 - samples (int)
   - Where samples are every _ith_ pixel
