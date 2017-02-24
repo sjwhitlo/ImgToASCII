@@ -16,7 +16,7 @@ Runs from the command line via arguments or keyboard input.
 - output file name (without the extension)
 - optional: invert symbols (y/n)
 
-
+<hr>
 # ConvertFilesToASCII
 
 Takes a directory, and calls ImgToASCII for all files in the directory
