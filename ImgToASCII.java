@@ -40,7 +40,7 @@ public final class ImgToASCII {
             imgOut = args[2];
             inverted = ( args[3].charAt(0) == INVERTED );
         } else {
-            System.out.println( "usage: java JpegToASCII path_to_file samples output_file(w/o_.jpg) [opt: inverted (y/n)]");
+            System.out.println( "usage: java JpegToASCII path_to_file samples output_file(w/o_ext) [opt: inverted (y/n)]");
         }
         
         // Append the extension
